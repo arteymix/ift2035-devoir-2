@@ -53,6 +53,25 @@
 
 (assert (equal? (split '(1 2 3) 2) '((1) (3))))
 
+;;; applique la sortie de f sur l'entrée de f avec left et (car lst) comme
+;;; valeur initiales
+(define fold-left (lambda (f left lst)
+                    (if (null? lst)
+                      left ; termine avec ce qui a été foldé
+                      (fold-left f (f left (car lst)) (cdr lst)))))
+
+(assert (equal? (fold-left + 1 '(1 2 3)) 7))
+(assert (equal? (fold-left string-append "" '("a" "b" "c")) "abc"))
+(assert (equal? (fold-left string-append "" '()) ""))
+
+;;; fold-right est exactement comme fold-left, mais avec un renversement de la liste
+(define fold-right (lambda (f right lst)
+                     (fold-left f right (reverse lst))))
+
+(assert (equal? (fold-right + 1 '(1 2 3)) 7))
+(assert (equal? (fold-right string-append "" '("a" "b" "c")) "cba"))
+(assert (equal? (fold-right string-append "" '()) ""))
+
 ;;;----------------------------------------------------------------------------
 
 ;;; fonctions pour traiter les arbres
@@ -68,25 +87,31 @@
 (define node-splay (lambda (root n) (n)))
 
 ;;; recherche un noeud possédant un terme donné
-(define node-search (lambda (root n term)
-  (if (null? n) 
-	#f
-    (let ((t (node-term n)))
-      (cond
-        ((string-ci=? term t) (node-splay root n))
-        ((string-ci<? term t) (node-search root (node-left n) term))
-        ((string-ci>? term t) (node-search root (node-right n) term)))))))
+;;; retourne #f si aucun noeud ne correspond au terme donné
+(define node-search (lambda (root node term)
+                      (if (null? node)
+                        #f
+                        (let ((t (node-term node)))
+                          (cond
+                            ((string-ci=? term t) (node-splay root node))
+                            ((string-ci<? term t) (node-search root (node-left node) term))
+                            ((string-ci>? term t) (node-search root (node-right node) term)))))))
 
-;;; insère dans l'arbre
-(define node-insert (lambda (p n)
-	(if (null? n)
-		(let ((t (node-term n)))
-			(cond
-				((string-ci=? term t) (node-splay root n))
-				((string-ci<? term t) (node-search root (node-left n) term))
-			((string-ci>? term t) (node-search root (node-right n) term)))
-		('())
-	))))
+;;; insère un nouveau noeud dans l'arbre
+(define node-insert (lambda (root node)
+                      (if (null? n)
+                        (let ((term (node-term node)))
+                          (cond
+                            ((string-ci=? term t) (node-splay root node))
+                            ((string-ci<? term t) (node-search root (node-left node) term))
+                            ((string-ci>? term t) (node-search root (node-right node) term)))
+                          ('())))))
+
+;;; construit la définition d'un noeud
+(define node-definition (lambda (node)
+                          (fold-left string-append "" (node-definitions node))))
+
+(assert (equal? (node-definition '(() "term" ("a" "b" "c") ())) "abc"))
 
 ;;; supprime un noeud de l'arbre
 (define node-delete (lambda (n term) n))
@@ -105,20 +130,14 @@
     (if (null? dict)
       (traiter expr '(() ())) ; initialise le dictionnaire et les définitions
       (let ((root (car dict)) (definitions (cdr dict)) (definition (member #\= expr)))
-          (if (eq? definition #f)
-        ;;;si pas '=', recherche de la définition
-        ((result expr dict))
-        ;;si lexpression contient un '=', modification ou ajout d'un noeud dans l'arbre
-        ((result definition dict))
-      )))))
-;;;(cons (append (string->list "*** le programme est ")
-;;;              '(#\I #\N #\C #\O #\M #\P #\L #\E #\T #\! #\newline)
-;;;              (string->list "*** la requete lue est: ")
-;;;              expr
-;;;              (string->list "\n*** nombre de caractères: ")
-;;;              (string->list (number->string (length expr)))
-;;;              '(#\newline))
-;;;      dict))))
+        (if definition
+          (let ((term (take (- (length expr) (length expr)) expr))) ; insertion, on récupère le terme
+            (if (equal? (string-length definition) 0)
+              (node-delete root term) ; suppression
+              (node-insert root))) ; insertion
+          (#t (let ((term expr)) ; les autres cas sont des recherches
+                (cons (node-definition root (node-search root term)) dict) ; la recherche n'altère par le dictionnaire, alors on le retourne
+                ))))))) ; recherche
 
 ;;;----------------------------------------------------------------------------
 
