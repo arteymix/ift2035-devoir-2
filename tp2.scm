@@ -22,16 +22,13 @@
 ;;; fonctions utiles
 
 ; assertion
-(define assert (lambda (expr)
-                 (if expr
-                   (begin
-                     (display "\x1B[32m")
-                     (display "pass\n")
-                     (display "\x1b[0m"))
-                   (begin
-                     (display "\x1b[31m")
-                     (display "fail\n")
-                     (display "\x1b[0m")))))
+(define assert (lambda (expr . message)
+                 (let ((color (if expr "\x1b[32m" "\x1b[31m")) (reset "\x1b[0m"))
+                     (display color)
+                     (display (if expr "pass" "fail"))
+                     (display (if (not (null? message)) (string-append " " (car message)) ""))
+                     (display "\n")
+                     (display reset))))
 
 ;;; prend n élément de la liste l
 (define take (lambda (n l)
@@ -39,32 +36,33 @@
                  '()
                  (cons (car l) (take (- n 1) (cdr l))))))
 
-(assert (equal? (take 0 '(1 2 3)) '())) ; prendre aucun éléments
-(assert (equal? (take 2 '(1 2 3)) '(1 2))) ; prendre quelque éléments
-(assert (equal? (take 3 '(1 2 3)) '(1 2 3))) ; prendre tous les éléments
+(assert (equal? (take 0 '(1 2 3)) '()) "take no element") ; prendre aucun éléments
+(assert (equal? (take 2 '(1 2 3)) '(1 2)) "take few elements") ; prendre quelque éléments
+(assert (equal? (take 3 '(1 2 3)) '(1 2 3)) "take all elements") ; prendre tous les éléments
 
 ;;; split la liste l en sous-listes sur element
 (define split (lambda (l element)
-  (if (not (member element l))
-    (list l)
-    (let ((right (cdr (member element l))))
-      (let ((left (take (- (length l) (length right) 1) l)))
-                 (cons left (split right element)))))))
+                (if (not (member element l))
+                  (list l)
+                  (let ((right (cdr (member element l))))
+                    (let ((left (take (- (length l) (length right) 1) l)))
+                      (cons left (split right element)))))))
 
-(assert (equal? (split '(1 2 3) 2) '((1) (3))))
+(assert (equal? (split '(1 2 3) 2) '((1) (3))) "regular split")
+(assert (equal? (split '() 2) '()) "splitting an empty list")
 
-;;; applique la sortie de f sur l'entrée de f avec left et (car lst) comme
-;;; valeur initiales
+;;; applique la sortie de f sur l'entrée de f avec (car lst) left est utilisé
+;;; comme valeur initiales
 (define fold-left (lambda (f left lst)
                     (if (null? lst)
                       left ; termine avec ce qui a été foldé
                       (fold-left f (f left (car lst)) (cdr lst)))))
 
-(assert (equal? (fold-left + 1 '(1 2 3)) 7))
-(assert (equal? (fold-left string-append "" '("a" "b" "c")) "abc"))
-(assert (equal? (fold-left string-append "" '()) ""))
+(assert (equal? (fold-left + 1 '(1 2 3)) 7) "fold-left an addition")
+(assert (equal? (fold-left string-append "" '("a" "b" "c")) "abc") "fold-left a string")
+(assert (equal? (fold-left string-append "" '()) "") "fold-left an empty list")
 
-;;; fold-right est exactement comme fold-left, mais avec un renversement de la liste
+;;; fold-right est simple a définir avec un fold-left et un reverse
 (define fold-right (lambda (f right lst)
                      (fold-left f right (reverse lst))))
 
@@ -111,7 +109,7 @@
 (define node-definition (lambda (node)
                           (fold-left string-append "" (node-definitions node))))
 
-(assert (equal? (node-definition '(() "term" ("a" "b" "c") ())) "abc"))
+(assert (equal? (node-definition '(() "term" ("a" "b" "c") ())) "abc") "node-defintion concatenation")
 
 ;;; supprime un noeud de l'arbre
 (define node-delete (lambda (n term) n))
