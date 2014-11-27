@@ -150,26 +150,30 @@
 ;                          'g-definitions
 ;                          'g-right)))
 
+(define node-splay (lambda (root node)
+  (cond
+    ; zig
+    ((and (equal? g parent) (equal? (node-left parent) node))
+     (node-zig parent node))
+    ((and (equal? g parent) (equal? (node-right parent) node))
+     (node-zig parent node))
+    ; zig-zig
+    ((and (equal? (node-left g) parent) (equal? (node-left parent) node))
+     (node-zig-zig g parent node))
+    ((and (equal? (node-right g) parent) (equal? (node-right parent) node))
+     (node-zig-zig g parent node))
+    ; zig-zag
+    ((and (equal? (node-left g) parent) (equal? (node-right parent) node))
+     (node-zig-zig g parent node))
+    ((and (equal? (node-right g) parent) (equal? (node-left parent) node))
+     (node-zig-zig g parent node)))))
+
 ;;; splay 3 noeuds
 ;;; applique une des rotations d'arbre, ramenant node à g
-(define node-splay (lambda (g parent node)
-                     (cond
-                       ; zig
-                       ((and (equal? g parent) (equal? (node-left parent) node))
-                        (node-zig parent node))
-                       ((and (equal? g parent) (equal? (node-right parent) node))
-                        (node-zig parent node))
-                       ; zig-zig
-                       ((and (equal? (node-left g) parent) (equal? (node-left parent) node))
-                        (node-zig-zig g parent node))
-                       ((and (equal? (node-right g) parent) (equal? (node-right parent) node))
-                        (node-zig-zig g parent node))
-                       ; zig-zag
-                       ((and (equal? (node-left g) parent) (equal? (node-right parent) node))
-                        (node-zig-zig g parent node))
-                       ((and (equal? (node-right g) parent) (equal? (node-left parent) node))
-                        (node-zig-zig g parent node))
-                       )))
+(define splaytree (lambda (root node)
+                     (if (equal? (node-term root) (node-term node))
+                       root
+                       (splaytree (node-splay root node) node))))
 
 ;;; recherche un noeud possédant un terme donné
 (define node-search
@@ -211,23 +215,33 @@
 (assert (equal?
           '(() "a" () (() "b" () ()))
           (node-insert '(() "a" () ()) '(() "b" () ()))) "insertion à droite de la racine")
+(assert (equal?
+          '(() "b" () (() "a" () ()))
+          (node-insert '(() "b" () ()) '(() "a" () ()))) "insertion à droite de la racine")
 
 ;;; supprime un noeud de l'arbre
-(define node-delete (lambda (g parent term)
-                      (if (null? parent)
-                        (node-splay g parent
-                                    (let ((t (node-term node)))
-                                      (cond
-                                        ((string-ci=? term t) (node-splay  parent node))
-                                        ((string-ci<? term t) (node-delete (node-left parent) node) term)
-                                        ((string-ci>? term t) (node-delete (node-right parent) node) term))
-                                      )))))
+;;;
+;;; retourne une liste contenant l'arbre sans le noeud avec le parent du noeud
+;;; supprimé.
+(define node-delete (lambda (parent term)
+                      (if (null? parent) parent
+                        (let ((t (node-term node)))
+                          (cond
+                            ((string-ci=? term t) (node-splay  parent node))
+                            ((string-ci<? term t) (node-delete (node-left parent) node) term)
+                            ((string-ci>? term t) (node-delete (node-right parent) node) term))
+                          ))))
 
+;;;
 ;;; construit récursivement la définition d'un terme
+;;;
+;;; ne doit pas être récursif
 (define node-build-definitions (lambda (root node term)
                           (if null? node)
                             term ;; le terme n'est pas trouvé, alors c'est au moins la définition
-                            (let ((t (node-term node)))
+                            (let (
+                                  (t (node-term node))
+                                  (node-build-definitions (lambda (term) (node-build-definitions root node term))))
                               (cond
                                 ((string-ci=? term t) (map node-build-definitions (node-definitions node))
                                 ((string-ci<? term t) (node-build-definitions root (node-left node) term))
@@ -248,14 +262,15 @@
       (if definition ; cas d'insertion et de suppression
         (let (
               (term (list->string (take (- (length expr) (length expr)) expr))) ; le terme est la partie qui précède le caractère #\=
-              (definition (cdr definition)))                                    ; on extrait le caractère #\=
+              (definition (list->string (cdr definition))))                                    ; on extrait le caractère #\=
           (if (null? definition)
-            (node-delete root term) ; suppression
-            (node-insert root (list '() term (node-build-definitions term) '()))) ; insertion
-          (let (
-                (node (node-search root root expr))) ; noeud correspondant à la recherche
-            (cons (fold-left string-append "" (node-definitions node)) dict) ; on imprime la concaténation des definitions
-            (cons "terme inconnu" dict) ; terme inconnu si node-search retourne #f
+            (apply splaytree (node-delete root term)) ; suppression
+            (let ((node (list '() term (node-build-definitions term))))
+              (splaytree (node-insert root node) node)))) ; insertion
+        (let ((node (node-search root expr))) ; noeud correspondant à la recherche
+          (if node
+            (cons (fold-left string-append "" (node-definitions node)) (splaytree root node)) ; on imprime la concaténation des definitions
+            (cons (string->list "terme inconnu\n") root) ; terme inconnu si node-search retourne #f
             )))))) ; recherche
 
 ;;;----------------------------------------------------------------------------
