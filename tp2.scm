@@ -91,50 +91,137 @@
                      (node-left node)
                      (node-term node)
                      (node-definitions node)
-                     (
-                      (node-right node)
-                      (node-term parent)
-                      (node-definitions parent)
-                      (node-right parent)))))
+                     (list
+                       (node-right node)
+                       (node-term parent)
+                       (node-definitions parent)
+                       (node-right parent)))))
 
 ;;; rotation zig-zig avec
-(define node-zig-zig (lambda (g parent node) node))
+(define node-zig-zig (lambda (g parent node)
+  (list
+    (node-left node)
+    (node-term node)
+    (node-definitions node)
+    (list
+      (node-right node)
+      (node-term parent)
+      (node-definitions parent)
+      (list
+        (node-right parent)
+        (node-term g)
+        (node-definitions g)
+        (node-right g))))))
 
-;;; rotation zig-zag
-(define node-zig-zag (lambda (g parent node) node))
+;;; rotation zig-zag de gauche à droite
+(define node-zig-zag (lambda (g parent node)
+  (list
+    (list
+      (node-left parent)
+      (node-term parent)
+      (node-definitions parent)
+      (node-left node))
+    (node-term node)
+    (node-definitions node)
+    (list
+      (node-right node)
+      (node-term g)
+      (node-definitions g)
+      (node-right g)))))
 
-;;; construit un arbre avec n comme racine et tous les noeuds de root
-;;; n est élément de root
-(define node-splay
-	(lambda (root node)
-    node))
+(define node-zag-zig (lambda (g parent node)
+                       (list)))
+
+(define node-zag-zag)
+
+;(assert (equal?
+;          '(
+;            (parent-left parent-term parent-definitions node-left)
+;            node-term
+;            node-definition
+;            (node-right g-term g-definitions g-right))
+;          (node-zig-zag
+;                          '(
+;                           parent-left
+;                           parent-term
+;                           parent-definitions
+;                           (node-left node-term node-definitions node-right))
+;                          'g-term
+;                          'g-definitions
+;                          'g-right)))
+
+;;; splay 3 noeuds
+;;; applique une des rotations d'arbre, ramenant node à g
+(define node-splay (lambda (g parent node)
+                     (cond
+                       ; zig
+                       ((and (equal? g parent) (equal? (node-left parent) node))
+                        (node-zig parent node))
+                       ((and (equal? g parent) (equal? (node-right parent) node))
+                        (node-zig parent node))
+                       ; zig-zig
+                       ((and (equal? (node-left g) parent) (equal? (node-left parent) node))
+                        (node-zig-zig g parent node))
+                       ((and (equal? (node-right g) parent) (equal? (node-right parent) node))
+                        (node-zig-zig g parent node))
+                       ; zig-zag
+                       ((and (equal? (node-left g) parent) (equal? (node-right parent) node))
+                        (node-zig-zig g parent node))
+                       ((and (equal? (node-right g) parent) (equal? (node-left parent) node))
+                        (node-zig-zig g parent node))
+                       )))
 
 ;;; recherche un noeud possédant un terme donné
 (define node-search
-  (lambda (root node term)
+  (lambda (node term)
     (if(null? node)
-      #f
+      #f ; non trouvé
       (let ((t (node-term node)))
         (cond
-          ((string-ci=? term t) (node-splay root node))
+          ((string-ci=? term t) node)
           ((string-ci<? term t) (node-search root (node-left node) term))
           ((string-ci>? term t) (node-search root (node-right node) term)))
-        )
-      )))
+        ))))
 
 ;;; insère dans l'arbre
-(define node-insert (lambda (p n)
-	(if (null? n)
-    (let ((t (node-term n)))
-      (cond
-        ((string-ci=? term t) (node-splay root n))
-        ((string-ci<? term t) (node-search root (node-left n) term))
-        ((string-ci>? term t) (node-search root (node-right n) term)))
-      ('())
-      ))))
+;;; retourne l'arbre inséré et splayé
+(define node-insert (lambda (parent node)
+                      (if (null? parent) node ; insertion
+                        (let ((parent-term (node-term parent)) (term (node-term node)))
+                          (cond
+                            ((string-ci=? term parent-term) ; substitition des définitions
+                             (list
+                               (node-left parent)
+                               (node-term parent)
+                               (node-definitions node)
+                               (node-right parent)))
+                            ((string-ci<? term parent-term) ; insertion à gauche
+                             (list
+                               (node-insert (node-left parent) node)
+                               (node-term parent)
+                               (node-definitions parent)
+                               (node-right parent)))
+                            ((string-ci>? term parent-term) ; insertion à droite
+                             (list
+                               (node-left parent)
+                               (node-term parent)
+                               (node-definitions parent)
+                               (node-insert (node-right parent) node))))))))
+
+(assert (equal?
+          '(() "a" () (() "b" () ()))
+          (node-insert '(() "a" () ()) '(() "b" () ()))) "insertion à droite de la racine")
 
 ;;; supprime un noeud de l'arbre
-(define node-delete (lambda (n term) n))
+(define node-delete (lambda (g parent term)
+                      (if (null? parent)
+                        (node-splay g parent
+                                    (let ((t (node-term node)))
+                                      (cond
+                                        ((string-ci=? term t) (node-splay  parent node))
+                                        ((string-ci<? term t) (node-delete (node-left parent) node) term)
+                                        ((string-ci>? term t) (node-delete (node-right parent) node) term))
+                                      )))))
 
 ;;; construit récursivement la définition d'un terme
 (define node-build-definitions (lambda (root node term)
@@ -161,7 +248,7 @@
       (if definition ; cas d'insertion et de suppression
         (let (
               (term (list->string (take (- (length expr) (length expr)) expr))) ; le terme est la partie qui précède le caractère #\=
-              (definition (cdr definition)))                                    ; on extrait le caractère #\= 
+              (definition (cdr definition)))                                    ; on extrait le caractère #\=
           (if (null? definition)
             (node-delete root term) ; suppression
             (node-insert root (list '() term (node-build-definitions term) '()))) ; insertion
