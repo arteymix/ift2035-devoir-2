@@ -1,15 +1,79 @@
 \documentclass{article}
 
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
 
 \usepackage{fullpage}
 \usepackage{listings}
 
 \title{IFT2035 Concepts de languages de programmation \\ Devoir 2}
-\author{Alex \& Guillaume Poirier-Morency}
+\author{Alex Élie \& Guillaume Poirier-Morency}
 
 \begin{document}
 
-\maketitle
+  \maketitle
+
+  \abstract
+
+  \section{}
+  Le programme a été découpé en trois partie:
+  \begin{itemize}
+    \item les fonctions pour traiter les listes
+    \item les fonctions pour traiter les noeuds
+    \item la boucle principale
+  \end{itemize}
+
+  Il y a deux fonctions de traitement de liste qui se sont montrée utile dans la
+  réalisation du travail: \textsf{split} et \textsf{take}. \textsf{split} sépare
+  une liste en une liste de sous-listes séparée sur un symbole. \textsf{take}
+  prend $n$ éléments d'une liste donnée. Ces deux fonctions permettent de
+  traiter les entrées des utilisateurs lorsque les chaînes sont représentées
+  sous forme de liste de caractères.
+
+  Toutes les fonctions qui opèrent sur les noeuds reconstruisent récursivement
+  leur descendance en respectant l'objectif de la fonction. La fonction
+  \textsf{node-delete} par exemple reconstruit sa descendance en omettant le
+  noeud qui doit être supprimé. La seule différence est la fonction
+  \textsf{node-search} qui ne fait que trouver un noeud dans la descendence d'un
+  noeud donné sans reconstruire l'arbre.
+
+  La fonction d'insertion \textsf{node-insert} s'occupe aussi de la substitution
+  dans le cas ou l'utilisateur désire assigner une nouvelle définition à un
+  noeud.
+
+  Les traitements des arbres binaires et le rebalancement splay ont été séparé
+  afin d'éviter la répétition de code. Le processus de splay s'applique sur le
+  résultat des fonctions de noeuds sous forme de composition dans la boucle
+  \textsf{traiter}, alors nous avons une seule et unique
+  implantation pour cette opération.
+
+  Les fonctions de rotation \textsf{ziz}, \textsf{zag}, \textsf{zig-zig},
+  effectue la rotation correspondante en réassemblant les noeuds qui leurs sont
+  passés en arguments de sorte qu'ils sont complètement réutilisable par les
+  autres fonctions du programme.
+
+  \section{}
+
+  \subsection{Analyse syntaxique}
+
+  \subsection{Représentation des dictionnaires}
+
+  \subsection{Pré}
+
+  \subsection{Traitement des erreurs}
+
+  \section{}
+
+  La concaténation d'une liste de chaînes est simple à exprimer en Scheme avec
+  un \textsf{fold-left} et un \textsf{string-append} sur une liste d'éléments.
+  En C, il faut allouer suffisament de mémoire, vérifier si le bloc est bien
+  alloué et utiliser \textsf{strcat} dans une boucle.
+
+  Le traitement des arbres est assez lourd en Scheme.
+
+  Toutes les fonctions de traitement de noeuds sont sous la forme itérative.
+  \textsf{splaytree}, \textsf
+  \section{}
 
 \end{document}
