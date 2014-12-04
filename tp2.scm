@@ -87,52 +87,138 @@
 
 ;rotation zig
 (define node-zig (lambda (root)
-                   (let ((root-term (node-term(node-right root)))
-                         (root-def (node-definitions(node-right root)))
-                         (splay-node (node-right root)))
-                     (list(list(node-left root node-term root node-definitions root node-left splay-node) root-term root-def node-right splay-node))
+                   (let ((root-term (node-term (node-right root)))
+                         (root-definitions (node-definitions (node-right root)))
+                         (splayed-node (node-right root)))
+                     (list
+                       (list ; la racine est à gauche
+                         (node-left root)
+                         (node-term root)
+                         (node-definitions root)
+                         (node-left splayed-node))
+                       root-term
+                       root-definitions
+                       (node-right splayed-node))
                      )))
+
+(assert (equal?
+          '((root-left root-term root-definitions node-left) node-term node-definitions node-right)
+          (node-zig '(root-left root-term root-definitions (node-left node-term node-definitions node-right)))) "node-zig")
 
 ;;; rotation zag
 (define node-zag (lambda (root)
-                   (let ((root-term (node-term(node-left root)))
-                         (root-def (node-definitions(node-left root)))
-                         (splay-node (node-left root)))
-                     (list (node-left splay-node root-term root-def list(node-right splay-node node-term root node-definitions root node-right root)))
-                     )))
+                   (let ((splayed-node (node-left root)))
+                     (list
+                       (node-left splayed-node)
+                       (node-term splayed-node)
+                       (node-definitions splayed-node)
+                       (list ; racine à droite
+                         (node-right splayed-node)
+                         (node-term root)
+                         (node-definitions root)
+                         (node-right root)))
+                   )))
+
+(assert (equal?
+          '((root-left root-term root-definitions node-left) node-term node-definitions node-right)
+          (node-zag '((node-left node-term node-definitions node-right) root-term root-definitions root-left))) "node-zag")
 
 ;;; rotation zig-zig
 (define node-zig-zig (lambda (root)
-                       (let((root-term (node-term (node-right (node-right root))))
-                            (root-def (node-definitions (node-right(node-right root))))
-                            (splay-node (node-right (node-right root))))
-                         (list (list (list (node-left root node-term root node-definitions root node-left (node-right root)) node-term(node-right root) node-definitions(node-right root) node-left splay-node) root-term root-def node-right splay-node))
-                         )))
+                       (let ((root-term (node-term (node-right (node-right root))))
+                            (root-definitions (node-definitions (node-right (node-right root))))
+                            (splayed-node (node-right (node-right root))))
+                         (list
+                           (list ; noeud de gauche
+                             (node-left root)
+                             (node-term root)
+                             (node-definitions root)
+                             (node-left (node-right root)))
+                           (node-term (node-right root))
+                           (node-definitions(node-right root))
+                           (list
+                             (node-left splayed-node)
+                             root-term
+                             root-definitions
+                             (node-right splayed-node))
+                           ))))
+
+(assert (equal?
+          '((root-left root-term root-definitions node-left) node-term node-definitions node-right)
+          (node-zig-zig '(root-left root-term root-definitions (node-left node-term node-definitions (child-left child-term child-definitions child-right))))) "node-zig-zig")
 
 ;;; rotation zag-zag
 (define node-zag-zag (lambda (root)
                        (let ((root-term (node-term (node-left (node-left root))))
-                            (root-def (node-definitions (node-left(node-left root))))
-                            (splay-node (node-left (node-left root))))
-                         (list (node-left splay-node root-term root-def list(node-right splay-node node-term(node-left root) node-definitions(node-left root) list( node-right(node-left root) node-term root node-definitions root node-right root) )))
+                             (root-definitions (node-definitions (node-left(node-left root))))
+                             (splayed-node (node-left (node-left root))))
+                         (list
+                           (node-left splayed-node)
+                           root-term
+                           root-definitions
+                           (list ; noeud de droite
+                             (node-right splayed-node)
+                             (node-term (node-left root))
+                             (node-definitions (node-left root))
+                             (list
+                               (node-right (node-left root))
+                               (node-term root)
+                               (node-definitions root)
+                               (node-right root))))
                          )))
+
+(assert (equal?
+          '((root-left root-term root-definitions node-left) node-term node-definitions node-right)
+          (node-zag-zag '(((child-left child-term child-definitions child-right) node-term node-definitions node-right) root-term root-definitions root-right))) "node-zag-zag")
 
 (define node-zig-zag (lambda (root)
-                       (let ((root-term (node-term (node-left(node-right root))))
-                             (root-def (node-definitions (node-left(node-right root))))
-                             (splay-node (node-left(node-right root))))
-                         (list (list (node-left root node-term root node-definitions root node-left splay-node) root-term root-def list((node-right splay-node node-term (node-right root) node-definitions (node-right root) node-right(node-right root)))))
-                         )))
+                       (let ((root-term (node-term (node-left (node-right root))))
+                             (root-definitions (node-definitions (node-left (node-right root))))
+                             (splayed-node (node-left (node-right root))))
+                         (list
+                           (list ; noeud de gauche
+                             (node-left root)
+                             (node-term root)
+                             (node-definitions root)
+                             (node-left splayed-node))
+                           root-term
+                           root-definitions
+                           (list ; noeud de droite
+                             (node-right splayed-node)
+                             (node-term (node-right root))
+                             (node-definitions (node-right root))
+                             (node-right (node-right root)))))
+                       ))
 
+(assert (equal?
+          '((root-left root-term root-definitions node-left) node-term node-definitions node-right)
+          (node-zig-zag '(root-left root-term root-definitions ((child-left child-term child-definitions child-right) node-term node-definitions node-right)))) "node-zig-zig")
+
+;;; rotation zag-zig
 (define node-zag-zig (lambda (root)
                        (let ((root-term (node-term (node-right (node-left root))))
-                             (root-def (node-definitions (node-right(node-left root))))
-                             (splay-node (node-right(node-left root))))
-                         (list (list (node-left(node-left root) node-term(node-left root) node-definitions(node-left root) node-left splay-node) root-term root-def list(node-right splay-node node-term root node-definitions root node-right root)))
-                       )))
+                             (root-definitions (node-definitions (node-right (node-left root))))
+                             (splayed-node (node-right (node-left root))))
+                         (list
+                           (list ; noeud de gauche
+                             (node-left (node-left root))
+                             (node-term (node-left root))
+                             (node-definitions (node-left root))
+                             (node-left splayed-node))
+                           root-term
+                           root-definitions
+                           (list ; noeud de droite
+                             (node-right splayed-node)
+                             (node-term root)
+                             (node-definitions root)
+                             (node-right root)))
+                         )))
 
-(assert (equal? (node-zig '( () "avion" "qui vole" (() "bateau" "qui flotte" ()) )) '( (() "avion" "qui vole" ()) "bateau" "qui flotte" ()) ) "zig op")
+(assert (equal?
+          '((root-left root-term root-definitions node-left) node-term node-definitions node-right)
+          (node-zag-zig '((node-left node-term node-definitions (child-left child-term child-definitions child-right)) root-term root-definitions root-right))) "node-zig-zig")
 
+;;; splay un noeud en sélectionnant la rotation appropriée
 (define node-splay (lambda (root node)
                      (cond
                        ;left-child
