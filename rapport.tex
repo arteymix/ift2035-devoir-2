@@ -7,8 +7,8 @@
 \usepackage{fullpage}
 \usepackage{listings}
 
-\title{IFT2035 Concepts de languages de programmation \\ Devoir 2}
-\author{Alex Élie \& Guillaume Poirier-Morency}
+\title{IFT2035 -- Concepts de languages de programmation \\ Devoir 2}
+\author{Alex Élie \& Guillaume Poirier-Morency (p1053380)}
 
 \begin{document}
 
@@ -16,12 +16,13 @@
 
   \abstract
 
-  \section{}
+  \section{Fonctionnement général du programme}
+
   Le programme a été découpé en trois partie:
   \begin{itemize}
-    \item les fonctions pour traiter les listes
-    \item les fonctions pour traiter les noeuds
-    \item la boucle principale
+    \item les fonctions pour traiter les listes ;
+    \item les fonctions pour traiter les noeuds ;
+    \item la boucle principale.
   \end{itemize}
 
   Il y a deux fonctions de traitement de liste qui se sont montrée utile dans la
@@ -45,25 +46,25 @@
   Les traitements des arbres binaires et le rebalancement splay ont été séparé
   afin d'éviter la répétition de code. Le processus de splay s'applique sur le
   résultat des fonctions de noeuds sous forme de composition dans la boucle
-  \textsf{traiter}, alors nous avons une seule et unique
-  implantation pour cette opération.
+  \textsf{traiter}, alors nous avons une seule et unique implantation pour cette
+  opération.
 
-  Les fonctions de rotation \textsf{ziz}, \textsf{zag}, \textsf{zig-zig},
-  effectue la rotation correspondante en réassemblant les noeuds qui leurs sont
-  passés en arguments de sorte qu'ils sont complètement réutilisable par les
-  autres fonctions du programme.
+  Les fonctions de rotation \textsf{ziz}, \textsf{zag}, \textsf{zig-zig}, etc...
+  effectue la rotation correspondante à partir d'un noeud donné de sorte
+  qu'elles soient complètement réutilisable par les autres fonctions du
+  programme.
 
-  \section{}
+  \section{Résolution des problèmes de programmation}
 
   \subsection{Analyse syntaxique}
 
   \subsection{Représentation des dictionnaires}
 
-  \subsection{Pré}
+  \subsection{Affichage des réponses}
 
   \subsection{Traitement des erreurs}
 
-  \section{}
+  \section{Comparaison avec l'expérience de développement en C}
 
   La concaténation d'une liste de chaînes est simple à exprimer en Scheme avec
   un \textsf{fold-left} et un \textsf{string-append} sur une liste d'éléments.
