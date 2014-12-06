@@ -48,8 +48,8 @@
                     (let ((left (take (- (length l) (length right) 1) l)))
                       (cons left (split right element)))))))
 
-(assert (equal? (split '(1 2 3) 2) '((1) (3))) "regular split")
-(assert (equal? (split '() 2) '()) "splitting an empty list")
+(assert (equal? '((1) (3)) (split '(1 2 3) 2) ) "regular split")
+(assert (equal? '(()) (split '() 2)) "splitting an empty list")
 
 ;;; applique la sortie de f sur l'entrée de f avec (car lst) left est utilisé
 ;;; comme valeur initiales
@@ -66,9 +66,9 @@
 (define fold-right (lambda (f right lst)
                      (fold-left f right (reverse lst))))
 
-(assert (equal? (fold-right + 1 '(1 2 3)) 7))
-(assert (equal? (fold-right string-append "" '("a" "b" "c")) "cba"))
-(assert (equal? (fold-right string-append "" '()) ""))
+(assert (equal? (fold-right + 1 '(1 2 3)) 7) "fold-right" "fold-right an addittion")
+(assert (equal? (fold-right string-append "" '("a" "b" "c")) "cba") "fold-right reverse a string")
+(assert (equal? (fold-right string-append "" '()) "") "fold-right an empty list")
 
 ;;;----------------------------------------------------------------------------
 
@@ -223,26 +223,60 @@
 ;;; splay un noeud en sélectionnant la rotation appropriée
 (define node-splay (lambda (root node)
                      (let ((term (node-term node)))
-                     (cond
-                       ;left-child
-                       ((equal? term (node-term node-left root)) (node-zig root))
-                       ;right-child
-                       ((equal? term (node-term node-right root)) (node-zag root))
-                       ;left-left child
-                       ((equal? term (node-term node-left node-left root)) (node-zig-zig root))
-                       ;left-right child
-                       ((equal? term (node-term node-right node-left root)) (node-zig-zag root))
-                       ;right-right child
-                       ((equal? term (node-term node-right node-right root)) (node-zag-zag root))
-                       ;right-left child
-                       ((equal? term (node-term node-left node-right root)) (node-zag-zig root))
-                       ;noeud non trouvé comme enfant d'enfant, on se déplace dans larbre(a gauche ou à droite)
-                       ((string-ci>? (node-term node) (node-term root))
-                        (list ( (node-left root) (node-term root) (node-definitions) (node-splay (node-right root) node))))
-                       ((string-ci<? (term node) (term root))
-                        (list ((node-splay (node-right root) node) (node-term root) (node-definitions) (node-right root))))
-                       ((#t) error)
-                       ))))
+                       (cond
+
+                         ;left-child
+                         ((and
+                            (not (null? (node-left root)))
+                            (equal? term (node-term (node-left root))))
+                          (node-zig root))
+
+                         ;left-left child
+                         ((and
+                            (not (null? (node-left root)))
+                            (not (null? (node-left (node-left root))))
+                            (equal? term (node-term (node-left (node-left root)))))
+                          (node-zig-zig root))
+
+                         ;left-right child
+                         ((and
+                            (not (null? (node-left root)))
+                            (not (null? (node-right (node-left root))))
+                            (equal? term (node-term (node-right (node-left root)))))
+                          (node-zig-zag root))
+
+                         ;right-child
+                         ((and
+                            (not (null? (node-right root)))
+                            (equal? term (node-term (node-right root))))
+                          (node-zag root))
+
+                         ;right-right child
+                         ((and
+                            (not (null? (node-right root)))
+                            (not (null? (node-right (node-right root))))
+                            (equal? term (node-term (node-right (node-right root)))))
+                          (node-zag-zag root))
+
+                         ;right-left child
+                         ((and
+                            (not (null? (node-right root)))
+                            (not (null? (node-left (node-right root))))
+                            (equal? term (node-term (node-left (node-right root)))))
+                          (node-zag-zig root))
+
+                         ; splay à gauche de root
+                         ((string-ci<? (node-term node) (node-term root))
+                          (list (node-splay (node-left root) node) (node-term root) (node-definitions root) (node-right root)))
+
+                         ; splay à droite de root
+                         ((string-ci>? (node-term node) (node-term root))
+                          (list (node-left root) (node-term root) (node-definitions root) (node-splay (node-right root) node)))
+
+                         ; déjà splayed
+                         ((string-ci=? (node-term node) (node-term root))
+                          root)
+                         ))))
 
 ;;; applique une des rotations d'arbre, ramenant node à g
 (define splaytree (lambda (root node)
@@ -258,11 +292,17 @@
       (let ((t (node-term node)))
         (cond
           ((string-ci=? term t) node)
-          ((string-ci<? term t) (node-search root (node-left node) term))
-          ((string-ci>? term t) (node-search root (node-right node) term)))
+          ((string-ci<? term t) (node-search (node-left node) term))
+          ((string-ci>? term t) (node-search (node-right node) term)))
         ))))
 
 (assert (equal? #f (node-search '() "term")) "search in an empty tree")
+
+(assert (equal? '(node-left "a" node-definitions node-right)
+                (node-search '((node-left "a" node-definitions node-right) "b" root-definitions root-right) "a")) "search left")
+
+(assert (equal? '(node-left "b" node-definitions node-right)
+                (node-search '(root-left "a" root-definitions (node-left "b" node-definitions node-right)) "b")) "search right")
 
 ;;; insère dans l'arbre
 ;;; retourne l'arbre inséré et splayé
@@ -320,7 +360,13 @@
 ;;; donc récupérer la liste de définitions qui y correspond.
 (define node-build-definitions (lambda (root terms)
                                  (let ((node-search (lambda (term) (node-search root term)))) ; redéfinit la recherche pour capturer la racine dans une fermeture
-                                   (apply append (map node-search terms)))))
+                                   (let ((definitions (map node-search terms)))
+                                     (if (member #f definitions)
+                                       (if (equal? 1 (length terms))
+                                         (list (car terms)) ; pour un seul terme, on retourne le terme
+                                         #f)
+                                       definitions ; sinon on retourne toutes les définitions
+                                       )))))
 
 ;;;----------------------------------------------------------------------------
 
@@ -335,15 +381,20 @@
   (lambda (expr root)
     (let ((definition (member #\= expr)))
       (if definition ; cas d'insertion et de suppression
-        (let ((term (list->string (take (- (length expr) (length expr)) expr))) ; le terme est la partie qui précède le caractère #\=
+        (let ((term (list->string (take (- (length expr) (length definition)) expr))) ; le terme est la partie qui précède le caractère #\=
               (definitions (map list->string (split (cdr definition) #\+))))                                    ; on extrait le caractère #\=
           (if (null? definition)
             (apply splaytree (node-delete root term)) ; suppression
-            (let ((new-node (list '() term (node-build-definitions root (split definition #\+)) '())))
-              (list '() (splaytree (node-insert root new-node) new-node))))) ; insertion
-        (let ((node (node-search root expr))) ; noeud correspondant à la recherche
+            (let ((definition (cdr definition))) ; pop le caractère #\=
+              (let ((new-node-definitions (node-build-definitions root (map list->string (split definition #\+)))))
+                (if new-node-definitions
+                  (let ((new-node (list '() term new-node-definitions '())))
+                    (cons '() (splaytree (node-insert root new-node) new-node)))
+                  (cons (string->list "terme inconnu\n") root) ; on insère une définition composée de termes inconnus
+                  ))))) ; insertion
+        (let ((node (node-search root (list->string expr)))) ; noeud correspondant à la recherche
           (if node
-            (cons (fold-left string-append "" (node-definitions node)) (splaytree root node)) ; on imprime la concaténation des definitions
+            (cons (string->list (apply string-append (append (node-definitions node) '("\n")))) (splaytree root node)) ; on imprime la concaténation des definitions
             (cons (string->list "terme inconnu\n") root) ; terme inconnu si node-search retourne #f
             )))))) ; recherche
 
@@ -358,6 +409,8 @@
       (if (string? ligne)
           (let ((r (traiter-ligne ligne dict)))
             (for-each write-char (car r))
+            (display (cdr r)) ; imprime l'arbre après chaque opérational
+            (print "\n")    ; à enlever avant la remise..
             (go (cdr r)))))))
 
 (define traiter-ligne
