@@ -280,9 +280,12 @@
 
 ;;; applique node-splay tant que l'arbre n'est pas splayé.
 (define splaytree (lambda (root node)
-                     (if (equal? (node-term root) (node-term node))
-                       root
-                       (splaytree (node-splay root node) node))))
+                    (if (null? root) root
+                      (if (equal? (node-term root) (node-term node))
+                        root
+                        (splaytree (node-splay root node) node)))))
+
+(assert (equal? '() (splaytree '() '())) "splaytree an empty node")
 
 ;;; recherche un noeud possédant un terme donné
 ;;; retourne le noeud correspondant au terme, sinon #f
@@ -355,7 +358,7 @@
                             ((and (not (null? (node-left parent)))
                                   (string-ci=? term (node-term (node-left parent))))
                              (cons
-                               (list (node-insert (node-left parent) (node-right parent)))
+                               (node-insert (node-left parent) (node-right parent))
                                parent ; splay sur le parent
                                )) ; reconstruit l'arbre sans le noeud
 
@@ -363,14 +366,14 @@
                             ((and (not (null? (node-right parent)))
                                   (string-ci=? term (node-term (node-right parent))))
                              (cons
-                               (list (node-insert (node-left parent) (node-right parent)))
+                               (node-insert (node-left parent) (node-right parent))
                                parent ; splay sur le parent
                                 )) ; reconstruit l'arbre sans le noeud
 
                             ; noeud est la racine courante
                             ((string-ci=? term parent-term)
                              (cons
-                               (list (node-insert (node-left parent) (node-right parent)))
+                               (node-insert (node-left parent) (node-right parent))
                                parent ; splay sur le parent
                              ))
 
@@ -388,12 +391,13 @@
                             ; reconstruire à droite
                             ((string-ci>? term parent-term)
                              (let ((pair (node-delete (node-right parent) term)))
-                               (list
-                                 (node-left parent)
-                                 (node-term parent)
-                                 (node-definitions parent)
-                                 (car pair))
-                               (cdr pair)))
+                               (cons
+                                 (list
+                                   (node-left parent)
+                                   (node-term parent)
+                                   (node-definitions parent)
+                                   (car pair))
+                                 (cdr pair))))
 
                             )))))
 
@@ -402,8 +406,8 @@
           (node-delete '() "test")) "delete sur un noeud vide")
 
 (assert (equal?
-          '(() "a" left-definitions (right-left "c" right-definitions right-right))
-          (car (node-delete '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)) "b"))) "delete du parent")
+          (cons '(() "a" left-definitions (right-left "c" right-definitions right-right)) '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)))
+          (node-delete '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)) "b")) "delete du parent")
 
 ;;; construit une liste de définitions à partir d'une liste de termes
 ;;;
