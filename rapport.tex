@@ -8,7 +8,7 @@
 \usepackage{listings}
 
 \title{IFT2035 -- Concepts de languages de programmation \\ Devoir 2}
-\author{Alex Élie \& Guillaume Poirier-Morency (p1053380)}
+\author{Alex Élie (p1012971) \& Guillaume Poirier-Morency (p1053380)}
 
 \begin{document}
 
@@ -17,6 +17,13 @@
   \abstract
 
   \section{Fonctionnement général du programme}
+  L'interaction commence par l'appel de la fonction \textsf{go} qui s'occupe de
+  lire l'entrée utilisateur, d'appeler la fonction \textsf{traiter}, d'imprimer
+  son résultat et de repasser le dictionnaire au prochain appel.
+
+  Lorsqu'une requête est fini d'être traitée par \textsf{traiter} elle renvoie
+  une paire contenant dans le champ \textsf{car} la réponse à imprimer sous
+  forme de liste de caractères et le dictionnaire dans le champs \textsf{cdr}.
 
   Le programme a été découpé en trois partie:
   \begin{itemize}
@@ -57,25 +64,101 @@
   \section{Résolution des problèmes de programmation}
 
   \subsection{Analyse syntaxique}
+  Une requête est lue à partir de la ligne de commande et elle sera ensuite
+  analysée par la fonction traiter-ligne qui prend la requête et le
+  dictionnaire(l'arbre binaire) en argument. Ensuite, cette requête est
+  convertie en liste pour effectuer l'analyse plus facilement et la fonction
+  traiter est appelée. La fonction membre est principalement utilisée pour
+  vérifier les caractères présents dans la requête. On commence donc par
+  vérifier que la requête contient un égal pour effectuer une opération
+  d'assignation, concaténation ou délétion. Si la requête ne contient pas de
+  égal, on effectue une simple recherche dans le dictionnaire actuel.
+
+  Dans le cas où un caractère égal est trouvé, on doit ensuite vérifier si il
+  existe des caractères après le égal. Si aucun caractère n'est trouvé, on fait
+  appel à la fonction node-delete. S'il existe des caractères, on doit vérifier
+  que la partie de droite ne contient pas de caractères plus. Dans le cas d'une
+  concaténation, on construit une liste de mots qui se trouvent dans la requête
+  et et on va chercher leur définitions. Si aucun caractère plus n'est trouvé,
+  il s'agit d'un remplacement de définition ou d'un ajout dans l'arbre.
 
   \subsection{Représentation des dictionnaires}
+  Le dictionnaire est une liste de listes de la forme (nœud-gauche terme
+  définition noeud-droit) et les définitions sont des listes contenants
+  plusieurs strings si il y a eu concaténation de définitions.  Ce
+  dictionnaire est passé à chaque traitement de requêtes et il se modifie pour
+  former une plus grande liste ou se contracte lors des suppressions.
+  Différentes opérations affecte la forme du dictionnaire comme l'ajout, la
+  suppression, le splay du dictionnaire ou encore une simple recherche.
+
+  La recherche est l'opération la plus simple, on peut simplement traverser le
+  dictionnaire avec une fonction en forme itérative et retouner \#f si le nœud
+  n'est pas trouver ou retourner le nœud (lc terme définition rc) auquel on ira
+  chercher la définition qui sera affichée dans la console.
+
+  L'ajout d'une définition qui n'est pas déjà présente est assez simple. On veut
+  ajouter un nœud à la fin de l'arbre en reconstruisant celui-ci  pendant la
+  descente et on retourne le nouvel arbre avec le nœud ajouté. Les opérations de
+  comparaison sont faites en comparant les chaînes des termes pour savoir où
+  continuer la recherche et lorsqu'on trouve un nœud vide, on insère. Ensuite,
+  l'opération splay est appelée.
+
+  Pour modifier une définition, on traverse l'arbre en le reconstruisant et
+  lorsque le terme courant est trouvé, on reconstruit le nœud avec la nouvelle
+  définition. La fonction splay est alors appelée.
+
+  Pour l'opération de splay, c'est un peu plus complexe. Trois fonctions sont
+  utilisées pour permette de propager le nœud à splayer jusqu'à la racine.
+  Lorsqu'on descend dans l'arbre, la fonction node-splay se charge de vérifier
+  les 2 prochains enfants pour connaître quel type d'opération effectuer
+  (zig,zag,zig-zag etc...). Lorsque le nœud à splayé est trouvé, on effectue
+  l'opération de splay qui concorde avec la position du nœud et on se retrouve
+  avec un arbre où le nœud qu'on veut splayer se propage 2 étages plus haut. Une
+  autre fonction se charge de vérifier si le nœud à splayer est bien rendu à la
+  racine et dans le cas contraire recommence node-splay.
 
   \subsection{Affichage des réponses}
+  Dépendemment de la requête, diverses réponses sont affichés. On peut soit
+  afficher la définition d'un terme recherché ou encore terme inconnu si le
+  terme n'est pas trouvé. Nous n'avions pas à nous occuper de l'affichage car la
+  fonction go s'en charge. Nous devions par contre s'assurer que traiter-ligne
+  retourne bien une paire (réponse dictionnaire). Si la requête ne requiert pas
+  d'affichage, le nouveau dictionnaire est tout de même retourné, mais avec une
+  réponse vide.
 
   \subsection{Traitement des erreurs}
+  Comparé au programme c, il n'y avait pas tellement d'erreurs à gérer car les
+  types sont implicites. Si une recherche n'aboutit pas, elle fait simplement
+  retourner terme inconnue. Il n'y a pas non plus de manipulation mémoire et
+  donc beaucoup de choses sont géré par le compilateur sans qu'on est à y
+  penser. On peut toutefois s'assurer que la donnée attendu est bien la bonne en
+  utilisant des fonctions de comparaison sur les types.
 
   \section{Comparaison avec l'expérience de développement en C}
+
+  Comparativement au développement en C, notre programme Scheme contient entre
+  200 et 250 lignes de moins.
 
   La concaténation d'une liste de chaînes est simple à exprimer en Scheme avec
   un \textsf{fold-left} et un \textsf{string-append} sur une liste d'éléments.
   En C, il faut allouer suffisament de mémoire, vérifier si le bloc est bien
   alloué et utiliser \textsf{strcat} dans une boucle.
 
-  Le traitement des arbres est assez lourd en Scheme.
+  Le traitement des arbres est assez lourd en Scheme et les opérations de splay
+  et delete qui nécéssite de réordonner les noeuds sont complexes à exprimer,
+  car on ne peut pas faire d'affectation. Il fallait bien réfléchir à comment la
+  fonction allait reconstruire l'arbre en sortie.
 
-  Toutes les fonctions de traitement de noeuds sont sous la forme itérative.
-  \textsf{splaytree}, \textsf{}
+  Les opérations de recherches et d'insertion était simples à exprimer, car elle
+  se résumait à un parcours récursif de l'arbre. Scheme facilite beaucoup les
+  traitements récursifs.
 
-  \section{}
+  Le découpage en fonctions réutilisable nous a permis de faire de la
+  composition de fonction au lieu d'implanter l'opération de splay dans chaque
+  fonction de traitement d'arbre.
+
+  Les fonctions \textsf{node-search}, \textsf{node-insert} et \textsf{splaytree}
+  sont sous la forme itérative. Les autres fonctions étaient difficile à
+  exprimer sous cette forme.
 
 \end{document}
