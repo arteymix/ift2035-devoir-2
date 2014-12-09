@@ -21,14 +21,19 @@
 
 ;;; fonctions utiles
 
+; active le mode de débug avec les assertions
+(define debug #f)
+
 ; assertion
 (define assert (lambda (expr . message)
-                 (let ((color (if expr "\x1b[32m" "\x1b[31m")) (reset "\x1b[0m"))
+                 (if debug
+                   (let ((color (if expr "\x1b[32m" "\x1b[31m")) (reset "\x1b[0m"))
                      (display color)
                      (display (if expr "pass" "fail"))
                      (display (if (not (null? message)) (string-append " " (car message)) ""))
                      (display "\n")
-                     (display reset))))
+                     (display reset)
+                     ))))
 
 ;;; prend n élément de la liste l
 (define take (lambda (n l)
@@ -291,7 +296,7 @@
 ;;; retourne le noeud correspondant au terme, sinon #f
 (define node-search
   (lambda (node term)
-    (if(null? node)
+    (if (null? node)
       #f ; non trouvé
       (let ((t (node-term node)))
         (cond
@@ -358,7 +363,13 @@
                             ((and (not (null? (node-left parent)))
                                   (string-ci=? term (node-term (node-left parent))))
                              (cons
-                               (node-insert (node-left parent) (node-right parent))
+                               (list
+                                 (if (null? (node-left (node-left parent)))
+                                   (node-right (node-left parent))
+                                   (node-insert (node-left (node-left parent)) (node-right (node-left parent))))
+                                 (node-term parent)
+                                 (node-definitions parent)
+                                 (node-right parent))
                                parent ; splay sur le parent
                                )) ; reconstruit l'arbre sans le noeud
 
@@ -366,38 +377,54 @@
                             ((and (not (null? (node-right parent)))
                                   (string-ci=? term (node-term (node-right parent))))
                              (cons
-                               (node-insert (node-left parent) (node-right parent))
+                               (list
+                                 (node-left parent)
+                                 (node-term parent)
+                                 (node-definitions parent)
+                                 (if (null? (node-left (node-right parent)))
+                                   (node-right (node-right parent))
+                                   (node-insert (node-left (node-right parent)) (node-right (node-right parent))))
+                                 )
                                parent ; splay sur le parent
-                                )) ; reconstruit l'arbre sans le noeud
+                               )) ; reconstruit l'arbre sans le noeud
 
                             ; noeud est la racine courante
                             ((string-ci=? term parent-term)
                              (cons
-                               (node-insert (node-left parent) (node-right parent))
+                               (cond
+                                 ((null? (node-left parent)) (node-right parent))
+                                 ((null? (node-right parent)) (node-left parent))
+                                 (#t (node-insert (node-left parent) (node-right parent))))
                                parent ; splay sur le parent
                              ))
 
                             ; reconstruire à gauche
                             ((string-ci<? term parent-term)
                              (let ((pair (node-delete (node-left parent) term)))
-                             (cons
-                               (list
-                                 (car pair)
-                                 (node-term parent)
-                                 (node-definitions parent)
-                                 (node-right parent))
-                               (cdr pair))))
+                               (if pair
+                                 (cons
+                                   (list
+                                     (car pair)
+                                     (node-term parent)
+                                     (node-definitions parent)
+                                     (node-right parent))
+                                   (cdr pair))
+                                 #f
+                                 )))
 
                             ; reconstruire à droite
                             ((string-ci>? term parent-term)
                              (let ((pair (node-delete (node-right parent) term)))
-                               (cons
-                                 (list
-                                   (node-left parent)
-                                   (node-term parent)
-                                   (node-definitions parent)
-                                   (car pair))
-                                 (cdr pair))))
+                               (if pair
+                                 (cons
+                                   (list
+                                     (node-left parent)
+                                     (node-term parent)
+                                     (node-definitions parent)
+                                     (car pair))
+                                   (cdr pair))
+                                 #f
+                                 )))
 
                             )))))
 
@@ -408,6 +435,14 @@
 (assert (equal?
           (cons '(() "a" left-definitions (right-left "c" right-definitions right-right)) '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)))
           (node-delete '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)) "b")) "delete du parent")
+
+;(assert (equal?
+;          (cons '(() "a" left-definitions (right-left "c" right-definitions right-right)) '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)))
+;          (node-delete '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)) "a")) "delete à gauche")
+;
+;(assert (equal?
+;          (cons '(() "a" left-definitions (right-left "c" right-definitions right-right)) '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)))
+;          (node-delete '((() "a" left-definitions ()) "b" node-definitions (right-left "c" right-definitions right-right)) "c")) "delete à droite")
 
 ;;; construit une liste de définitions à partir d'une liste de termes
 ;;;
@@ -442,7 +477,7 @@
           (if (null? definition)
             (let ((pair (node-delete root term))) ; node-delete retourne une paire contenant l'arbre et le parent du noeud supprimé
               (if pair
-                (cons '() (splaytree (car pair) (cdr pair))); splay du parent du noeud supprimé
+                (cons '() (if (null? (cdr pair)) (splaytree (car pair) (cdr pair)) (car pair))); splay du parent du noeud supprimé
                 (cons (string->list "terme inconnu\n") root) ; non trouvé
                 ))             (let ((new-node-definitions (node-build-definitions root definitions)))
               (if new-node-definitions
@@ -467,8 +502,6 @@
       (if (string? ligne)
           (let ((r (traiter-ligne ligne dict)))
             (for-each write-char (car r))
-            (display (cdr r)) ; imprime l'arbre après chaque opérational
-            (print "\n")    ; à enlever avant la remise..
             (go (cdr r)))))))
 
 (define traiter-ligne

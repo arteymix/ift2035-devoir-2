@@ -6,6 +6,48 @@
 
 \usepackage{fullpage}
 \usepackage{listings}
+\usepackage{xcolor}
+
+% solarized pour la coloration du code!
+\definecolor{base03}{HTML}{002B36}
+\definecolor{base02}{HTML}{073642}
+\definecolor{base01}{HTML}{586E75}
+\definecolor{base00}{HTML}{657B83}
+\definecolor{base0}{HTML}{839496}
+\definecolor{base1}{HTML}{93A1A1}
+\definecolor{base2}{HTML}{EEE8D5}
+\definecolor{base3}{HTML}{FDF6E3}
+\definecolor{yellow}{HTML}{B58900}
+\definecolor{orange}{HTML}{CB4B16}
+\definecolor{red}{HTML}{DC322F}
+\definecolor{magenta}{HTML}{D33682}
+\definecolor{violet}{HTML}{6C71C4}
+\definecolor{blue}{HTML}{268BD2}
+\definecolor{cyan}{HTML}{2AA198}
+\definecolor{green}{HTML}{859900}
+
+\lstset{
+    basicstyle=\ttfamily,
+    sensitive=true,
+    backgroundcolor=\color{base3},
+    keywordstyle=\color{cyan},
+    commentstyle=\color{base1},
+    stringstyle=\color{blue},
+    numberstyle=\color{violet},
+    breaklines=true,
+    literate=
+  {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+  {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+  {à}{{\`a}}1 {è}{{\`e}}1 {ì}{{\`i}}1 {ò}{{\`o}}1 {ù}{{\`u}}1
+  {À}{{\`A}}1 {È}{{\'E}}1 {Ì}{{\`I}}1 {Ò}{{\`O}}1 {Ù}{{\`U}}1
+  {ä}{{\"a}}1 {ë}{{\"e}}1 {ï}{{\"i}}1 {ö}{{\"o}}1 {ü}{{\"u}}1
+  {Ä}{{\"A}}1 {Ë}{{\"E}}1 {Ï}{{\"I}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
+  {â}{{\^a}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1
+  {Â}{{\^A}}1 {Ê}{{\^E}}1 {Î}{{\^I}}1 {Ô}{{\^O}}1 {Û}{{\^U}}1
+  {œ}{{\oe}}1 {Œ}{{\OE}}1 {æ}{{\ae}}1 {Æ}{{\AE}}1 {ß}{{\ss}}1
+  {ç}{{\c c}}1 {Ç}{{\c C}}1 {ø}{{\o}}1 {å}{{\r a}}1 {Å}{{\r A}}1
+  {€}{{\EUR}}1 {£}{{\pounds}}1
+}
 
 \title{IFT2035 -- Concepts de languages de programmation \\ Devoir 2}
 \author{Alex Élie (p1012971) \& Guillaume Poirier-Morency (p1053380)}
@@ -13,8 +55,6 @@
 \begin{document}
 
   \maketitle
-
-  \abstract
 
   \section{Fonctionnement général du programme}
   L'interaction commence par l'appel de la fonction \textsf{go} qui s'occupe de
@@ -50,51 +90,66 @@
   dans le cas ou l'utilisateur désire assigner une nouvelle définition à un
   noeud.
 
+  \lstinputlisting[firstline=316,lastline=339,language=Lisp]{tp2.scm}
+
   Les traitements des arbres binaires et le rebalancement splay ont été séparé
   afin d'éviter la répétition de code. Le processus de splay s'applique sur le
   résultat des fonctions de noeuds sous forme de composition dans la boucle
   \textsf{traiter}, alors nous avons une seule et unique implantation pour cette
   opération.
 
-  Les fonctions de rotation \textsf{ziz}, \textsf{zag}, \textsf{zig-zig}, etc...
+  Les fonctions de rotation \textsf{zig}, \textsf{zag}, \textsf{zig-zig}, etc...
   effectue la rotation correspondante à partir d'un noeud donné de sorte
   qu'elles soient complètement réutilisable par les autres fonctions du
   programme.
+
+  \lstinputlisting[firstline=93,lastline=107,language=Lisp]{tp2.scm}
 
   \section{Résolution des problèmes de programmation}
 
   \subsection{Analyse syntaxique}
   Une requête est lue à partir de la ligne de commande et elle sera ensuite
   analysée par la fonction traiter-ligne qui prend la requête et le
-  dictionnaire(l'arbre binaire) en argument. Ensuite, cette requête est
+  dictionnaire (l'arbre binaire) en argument. Ensuite, cette requête est
   convertie en liste pour effectuer l'analyse plus facilement et la fonction
-  traiter est appelée. La fonction membre est principalement utilisée pour
-  vérifier les caractères présents dans la requête. On commence donc par
-  vérifier que la requête contient un égal pour effectuer une opération
-  d'assignation, concaténation ou délétion. Si la requête ne contient pas de
-  égal, on effectue une simple recherche dans le dictionnaire actuel.
+  traiter est appelée.
 
-  Dans le cas où un caractère égal est trouvé, on doit ensuite vérifier si il
-  existe des caractères après le égal. Si aucun caractère n'est trouvé, on fait
-  appel à la fonction node-delete. S'il existe des caractères, on doit vérifier
-  que la partie de droite ne contient pas de caractères plus. Dans le cas d'une
-  concaténation, on construit une liste de mots qui se trouvent dans la requête
-  et et on va chercher leur définitions. Si aucun caractère plus n'est trouvé,
-  il s'agit d'un remplacement de définition ou d'un ajout dans l'arbre.
+  La fonction \textsf{member} est utilisée pour vérifier la présence et la
+  position du caractère \textsf{=} dans l'entrée de l'utilisateur. La fonction
+  \textsf{take} permet de prendre la partie qui précède le premier caractère
+  \textsf{=} et le \textsf{(cdr (member expr))} nous donne la
+  définition en excluant ce symbole.
+
+  Si la partie de la définition est vide, on fait un appel à la fonction
+  \textsf{node-delete} avec le terme que l'utilisateur a fournit.
+
+  On sépare la définition avec la fonction \textsf{split} qui sépare une liste
+  en sous-listes séparée sur un symbole donné (un \textsf{+} dans ce cas
+  spécifique). On traite ensuite la liste de définition avec
+  \textsf{node-build-definitions} qui s'occupe de produire une liste de
+  définitions correspondant aux termes.
+
+  On insère ensuite le résultat dans l'arbre avec la fonction
+  \textsf{node-insert}. Si la clé se trouve déjà dans l'arbre, la fonction
+  s'occupe de faire la substitution des définitions du noeud existant.
 
   \subsection{Représentation des dictionnaires}
-  Le dictionnaire est une liste de listes de la forme (nœud-gauche terme
-  définition noeud-droit) et les définitions sont des listes contenants
-  plusieurs strings si il y a eu concaténation de définitions.  Ce
-  dictionnaire est passé à chaque traitement de requêtes et il se modifie pour
-  former une plus grande liste ou se contracte lors des suppressions.
+  Le dictionnaire est un arbre ou chaque noeud est listes de la forme
+  \textsf{(nœud-gauche terme définitions noeud-droit)}. Le champ
+  \textsf{definitions} est une liste de chaînes de définitions. La définition
+  globale n'est pas concaténée afin d'être réutilisée dans l'arbre.
+
+  \lstinputlisting[firstline=82,lastline=86,language=Lisp]{tp2.scm}
+
+  Le dictionnaire est passé à chaque traitement de requêtes et il se modifie pour
+  former une plus grande liste ou se contracter lors des suppressions.
   Différentes opérations affecte la forme du dictionnaire comme l'ajout, la
   suppression, le splay du dictionnaire ou encore une simple recherche.
 
   La recherche est l'opération la plus simple, on peut simplement traverser le
-  dictionnaire avec une fonction en forme itérative et retouner \#f si le nœud
-  n'est pas trouver ou retourner le nœud (lc terme définition rc) auquel on ira
-  chercher la définition qui sera affichée dans la console.
+  dictionnaire avec une fonction en forme itérative et retouner \textsf{\#f} si
+  le nœud n'est pas trouver ou retourner le nœud (lc terme définition rc) auquel
+  on ira chercher la définition qui sera affichée dans la console.
 
   L'ajout d'une définition qui n'est pas déjà présente est assez simple. On veut
   ajouter un nœud à la fin de l'arbre en reconstruisant celui-ci  pendant la
@@ -127,12 +182,21 @@
   réponse vide.
 
   \subsection{Traitement des erreurs}
-  Comparé au programme c, il n'y avait pas tellement d'erreurs à gérer car les
-  types sont implicites. Si une recherche n'aboutit pas, elle fait simplement
-  retourner terme inconnue. Il n'y a pas non plus de manipulation mémoire et
-  donc beaucoup de choses sont géré par le compilateur sans qu'on est à y
-  penser. On peut toutefois s'assurer que la donnée attendu est bien la bonne en
-  utilisant des fonctions de comparaison sur les types.
+  Comprarativement au programme en C, il n'y avait pas beaucoup d'erreurs à
+  gérer, car les structures de données sont uniformes et le typage est
+  dynamique.
+
+  Si une recherche n'aboutit pas, elle fait simplement retourner terme inconnue.
+
+  Il n'y a pas non plus de manipulation mémoire et donc beaucoup de choses sont
+  géré par le compilateur sans qu'on est à y penser. On peut toutefois s'assurer
+  que la donnée attendu est bien la bonne en utilisant des fonctions de
+  comparaison sur les types.
+
+  Le code a été testé à l'aide de tests unitaires afin de garantir le bon
+  fonctionnement de chaque partie du programme. Étant donné qu'il n'y a pas
+  d'effet de bord dans notre programme, on peut assembler des fonctions sans se
+  craintes de comportements étranges.
 
   \section{Comparaison avec l'expérience de développement en C}
 
